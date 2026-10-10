@@ -28,6 +28,7 @@ import {
 export default function AiScanner() {
   const [activeMode, setActiveMode] = useState('allergy'); // 'allergy' | 'cultural'
   const [userAllergies, setUserAllergies] = useState('Peanuts, Shellfish, Gluten');
+  const [dishName, setDishName] = useState('');
   const [culturalSubState, setCulturalSubState] = useState('translate_taste'); // 'translate_taste' | 'landmark_history'
 
   const [uploadedImage, setUploadedImage] = useState(null); // Full Data URL (e.g., data:image/jpeg;base64,...)
@@ -79,18 +80,19 @@ export default function AiScanner() {
 
     let promptText = '';
     if (activeMode === 'allergy') {
-      promptText = `You are an expert food safety and allergen cross-referencing AI for travelers.
-USER ALLERGIES: "${userAllergies.trim() || 'Severe unspecified allergies'}".
+      const allergies = userAllergies.trim() || 'Severe unspecified allergies';
+      const dishContext = dishName.trim() ? `They describe this dish as: ${dishName.trim()}.` : '';
 
-Analyze the captured food or menu image. Cross-reference the dish and visible ingredients against the user's allergies.
+      promptText = `The user has severe allergies to: ${allergies}. They have uploaded an image of a food item. ${dishContext} Based on the image and this description (critically analyzing hidden internal fillings, marinades, broths, and cooking oils that may not be visually exposed), analyze the ingredients and warn if any of the allergens are likely present.
+
 You MUST format your reply starting with either:
 VERDICT: SAFE
 or
 VERDICT: UNSAFE
 
 Follow immediately with clear reasoning:
-- Dish Identified
-- Detected or potential allergen risks (including hidden sauces, oils, or cross-contact)
+- Dish Identified & Description: ${dishName.trim() || 'From image analysis'}
+- Detected or potential allergen risks (including hidden fillings, sauces, oils, or cross-contact)
 - Safety instructions or kitchen warning card in the local language`;
     } else if (culturalSubState === 'translate_taste') {
       promptText = `You are an expert culinary linguist and food cultural decoder.
@@ -275,6 +277,18 @@ Provide:
                 +{tag}
               </button>
             ))}
+          </div>
+
+          {/* Dish Name / Context (Optional) Input */}
+          <div className="space-y-1 pt-1.5 border-t border-slate-100">
+            <label className="text-[11px] font-semibold text-slate-500">Dish Name / Context (Optional)</label>
+            <input
+              type="text"
+              value={dishName}
+              onChange={(e) => setDishName(e.target.value)}
+              placeholder="e.g., Beef Momos, Chicken Shawarma..."
+              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-100 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none transition"
+            />
           </div>
         </div>
       )}
