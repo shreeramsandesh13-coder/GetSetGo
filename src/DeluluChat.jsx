@@ -66,7 +66,7 @@ export default function DeluluChat() {
     if (!suggestedText) setInputText('');
     setIsLoading(true);
 
-    const effectiveKey = apiKey.trim() || import.meta.env.VITE_GEMINI_API_KEY || '';
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
     // EXTREME SPEED OPTIMIZATION: Exact system prompt and maxOutputTokens: 60
     const systemPrompt = "You are a travel assistant. Reply in exactly ONE short sentence. NEVER generate lists. Be instant.";
@@ -89,30 +89,30 @@ export default function DeluluChat() {
     };
 
     try {
-      if (!effectiveKey || effectiveKey === 'PLACE_KEY_HERE') {
-        throw new Error('API key not configured in .env');
+      if (!apiKey || apiKey === 'PLACE_KEY_HERE') {
+        throw new Error('API key not configured. Set VITE_GEMINI_API_KEY in .env');
       }
 
-      const primaryUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${effectiveKey}`;
-      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${effectiveKey}`;
-
-      let response = await fetch(primaryUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      // Handle 404 if gemini-1.5-flash is sunsetted for this project key
-      if (response.status === 404) {
-        response = await fetch(fallbackUrl, {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        });
-      }
+        }
+      );
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        let errorDetails = `HTTP ${response.status}`;
+        try {
+          const errData = await response.json();
+          if (errData?.error?.message) {
+            errorDetails = `${errData.error.message} (HTTP ${response.status})`;
+          }
+        } catch {
+          // ignore json parse error
+        }
+        throw new Error(errorDetails);
       }
 
       const data = await response.json();
@@ -131,15 +131,15 @@ export default function DeluluChat() {
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
-    } catch (err) {
-      console.warn('Delulu Gemini API warning/error:', err);
-      // Robust Fallback: Never hang!
+    } catch (error) {
+      console.warn('Delulu Gemini API warning/error:', error);
+      // REVEAL REAL ERROR ON SCREEN
       setMessages((prev) => [
         ...prev,
         {
           id: `delulu-${Date.now()}`,
           role: 'assistant',
-          content: "Oops! The network is glitchy, but Delulu's golden rule never fails: take the scenic route, grab an iced matcha, and follow the lantern glow! Adventure awaits! 🎒✨",
+          content: `API ERROR: ${error.message || error.toString()}`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
