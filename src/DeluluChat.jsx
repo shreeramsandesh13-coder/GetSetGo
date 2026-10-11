@@ -68,18 +68,24 @@ export default function DeluluChat() {
 
     const effectiveKey = apiKey.trim() || import.meta.env.VITE_GEMINI_API_KEY || '';
 
-    // Persona & Instructions formatted directly into prompt
-    const personaInstruction = "You are Delulu, an enthusiastic, highly knowledgeable, and slightly quirky travel guide. Keep answers under 3 sentences. Be accurate but immensely fun.";
-    const userPromptText = `[Instructions: ${personaInstruction}]\n\nUser Question: ${textToSend.trim()}`;
+    // EXTREME SPEED OPTIMIZATION: Exact system prompt and maxOutputTokens: 60
+    const systemPrompt = "You are a travel assistant. Reply in exactly ONE short sentence. NEVER generate lists. Be instant.";
+    const userPromptText = `[System: ${systemPrompt}]\n\n${textToSend.trim()}`;
 
-    // Exact requested payload format: { contents: [{ role: "user", parts: [{ text: userMessage }] }] }
+    // Payload strictly using gemini-1.5-flash constraints
     const payload = {
+      systemInstruction: {
+        parts: [{ text: systemPrompt }]
+      },
       contents: [
         {
           role: "user",
           parts: [{ text: userPromptText }]
         }
-      ]
+      ],
+      generationConfig: {
+        maxOutputTokens: 60
+      }
     };
 
     try {

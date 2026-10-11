@@ -43,14 +43,43 @@ export default function AiScanner() {
 
   const fileInputRef = useRef(null);
 
-  // TASK 2: FILE UPLOAD VIA FILEREADER
+  // Helper to aggressively compress image (max width 500px, 0.5 quality)
+  const compressImage = (dataUrl, maxWidth = 500, quality = 0.5) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  };
+
+  // TASK 2: FILE UPLOAD VIA FILEREADER WITH AGGRESSIVE COMPRESSION
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = () => {
-      setUploadedImage(reader.result);
+    reader.onload = async () => {
+      const compressed = await compressImage(reader.result, 500, 0.5);
+      setUploadedImage(compressed);
       setAnalysisResult(null);
     };
     reader.readAsDataURL(file);
@@ -64,7 +93,7 @@ export default function AiScanner() {
     setAnalysisResult(null);
   };
 
-  // TASK 3: CALL GOOGLE GEMINI VISION REST API
+  // TASK 3: CALL GOOGLE GEMINI VISION REST API (EXTREME SPEED OPTIMIZATION)
   const handleAnalyzeWithAI = async () => {
     if (!uploadedImage) return;
 
@@ -73,44 +102,21 @@ export default function AiScanner() {
 
     const effectiveKey = apiKey.trim() || import.meta.env.VITE_GEMINI_API_KEY || '';
 
-    // Extract raw base64 string (remove data:...;base64, prefix) and MIME type
-    const matches = uploadedImage.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+    // Aggressively compress before API call (max width 500px, 0.5 quality)
+    const compressed = await compressImage(uploadedImage, 500, 0.5);
+    const matches = compressed.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
     const mimeType = matches ? matches[1] : 'image/jpeg';
-    const base64Data = matches ? matches[2] : uploadedImage.split(',')[1] || uploadedImage;
+    const base64Data = matches ? matches[2] : compressed.split(',')[1] || compressed;
 
     let promptText = '';
     if (activeMode === 'allergy') {
-      const allergies = userAllergies.trim() || 'Severe unspecified allergies';
-      const dishContext = dishName.trim() ? `They describe this dish as: ${dishName.trim()}.` : '';
-
-      promptText = `The user has severe allergies to: ${allergies}. They have uploaded an image of a food item. ${dishContext} Based on the image and this description (critically analyzing hidden internal fillings, marinades, broths, and cooking oils that may not be visually exposed), analyze the ingredients and warn if any of the allergens are likely present.
-
-You MUST format your reply starting with either:
-VERDICT: SAFE
-or
-VERDICT: UNSAFE
-
-Follow immediately with clear reasoning:
-- Dish Identified & Description: ${dishName.trim() || 'From image analysis'}
-- Detected or potential allergen risks (including hidden fillings, sauces, oils, or cross-contact)
-- Safety instructions or kitchen warning card in the local language`;
-    } else if (culturalSubState === 'translate_taste') {
-      promptText = `You are an expert culinary linguist and food cultural decoder.
-Analyze the captured foreign menu or dish.
-Provide:
-1. Native language translation & English pronunciation
-2. Food explanation & ingredient flavor profile
-3. Cultural background, local dining etiquette, and how to eat it`;
+      const allergyContext = userAllergies.trim() ? ` (Allergies: ${userAllergies.trim()}${dishName.trim() ? ', Dish: ' + dishName.trim() : ''})` : '';
+      promptText = `Analyze this image and the user's allergies${allergyContext}. Reply in exactly ONE short sentence: Safe or Unsafe, and why.`;
     } else {
-      promptText = `You are a world-class architectural and cultural heritage guide.
-Analyze the captured physical monument, statue, temple, or landmark.
-Provide:
-1. Monument/Landmark Identification & Location
-2. Brief historical background and why it was constructed
-3. Cultural significance & interesting trivia tourists miss`;
+      promptText = `Analyze this image. Reply in exactly ONE short sentence: cultural background or landmark identification.`;
     }
 
-    // Gemini Multimodal Payload Format
+    // Gemini Multimodal Payload Format strictly constrained for speed
     const payload = {
       contents: [
         {
@@ -125,7 +131,10 @@ Provide:
             }
           ]
         }
-      ]
+      ],
+      generationConfig: {
+        maxOutputTokens: 60
+      }
     };
 
     try {
