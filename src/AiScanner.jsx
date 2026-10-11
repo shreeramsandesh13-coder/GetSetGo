@@ -133,7 +133,10 @@ export default function AiScanner() {
         }
       ],
       generationConfig: {
-        maxOutputTokens: 60
+        maxOutputTokens: 60,
+        thinkingConfig: {
+          thinkingBudget: 0
+        }
       }
     };
 
@@ -142,9 +145,9 @@ export default function AiScanner() {
         throw new Error('API key missing');
       }
 
-      // Initialized explicitly with gemini-pro-vision model string
+      // Initialized explicitly with gemini-3.5-flash model string
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${effectiveKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${effectiveKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -157,7 +160,8 @@ export default function AiScanner() {
       }
 
       const data = await response.json();
-      const replyContent = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const parts = data?.candidates?.[0]?.content?.parts;
+      const replyContent = parts?.find((p) => p.text)?.text || parts?.[0]?.text;
 
       if (!replyContent) {
         throw new Error('Empty candidate response');

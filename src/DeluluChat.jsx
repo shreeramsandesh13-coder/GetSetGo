@@ -72,7 +72,7 @@ export default function DeluluChat() {
     const systemPrompt = "You are a travel assistant. Reply in exactly ONE short sentence. NEVER generate lists. Be instant.";
     const userPromptText = `[System: ${systemPrompt}]\n\n${textToSend.trim()}`;
 
-    // Payload strictly using gemini-pro constraints
+    // Payload strictly using gemini-3.5-flash constraints
     const payload = {
       contents: [
         {
@@ -81,7 +81,10 @@ export default function DeluluChat() {
         }
       ],
       generationConfig: {
-        maxOutputTokens: 60
+        maxOutputTokens: 60,
+        thinkingConfig: {
+          thinkingBudget: 0
+        }
       }
     };
 
@@ -90,9 +93,9 @@ export default function DeluluChat() {
         throw new Error('API key not configured. Set VITE_GEMINI_API_KEY in .env');
       }
 
-      // Initialized explicitly with gemini-pro model string
+      // Initialized explicitly with gemini-3.5-flash model string
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -114,7 +117,8 @@ export default function DeluluChat() {
       }
 
       const data = await response.json();
-      const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const parts = data?.candidates?.[0]?.content?.parts;
+      const reply = parts?.find((p) => p.text)?.text || parts?.[0]?.text;
 
       if (!reply) {
         throw new Error("No response candidate returned");
