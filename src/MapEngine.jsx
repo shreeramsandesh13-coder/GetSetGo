@@ -388,7 +388,7 @@ export default function MapEngine() {
                   ? 'Offline vector cache active • Zero data mode'
                   : downloadState === 'downloading'
                   ? `Downloading vector tiles (${downloadProgress}%)...`
-                  : 'Download for zero-data offline navigation'}
+                  : 'Downloads raw geographic coordinates and JSON data cache for offline map rendering.'}
               </p>
             </div>
           </div>
@@ -408,7 +408,7 @@ export default function MapEngine() {
               ? 'Downloaded ✅'
               : downloadState === 'downloading'
               ? `${downloadProgress}%`
-              : 'Download'}
+              : 'Download Offline Data (.json)'}
           </button>
         </div>
 

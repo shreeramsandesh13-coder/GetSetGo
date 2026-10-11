@@ -498,7 +498,7 @@ export default function MapFeature() {
                   ? 'File saved to Downloads • Ready for offline travel'
                   : isDownloading
                   ? 'Extracting vector tiles & caching offline JSON...'
-                  : 'Package coordinates and sidequests for offline use'}
+                  : 'Downloads raw geographic coordinates and JSON data cache for offline map rendering.'}
               </p>
             </div>
           </div>
@@ -506,7 +506,7 @@ export default function MapFeature() {
           <button
             onClick={handleDownload}
             disabled={isDownloading}
-            className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all shadow-sm active:scale-95 shrink-0 cursor-pointer disabled:opacity-60 ${
+            className={`px-3 py-2 rounded-2xl text-xs font-bold transition-all shadow-sm active:scale-95 shrink-0 cursor-pointer disabled:opacity-60 ${
               downloadSuccess
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
                 : isDownloading
@@ -522,7 +522,7 @@ export default function MapFeature() {
             ) : downloadSuccess ? (
               'Downloaded ✅'
             ) : (
-              'Download'
+              'Download Offline Data (.json)'
             )}
           </button>
         </div>

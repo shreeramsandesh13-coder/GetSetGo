@@ -43,8 +43,8 @@ export default function AiScanner() {
 
   const fileInputRef = useRef(null);
 
-  // Helper to aggressively compress image (max width 500px, 0.5 quality)
-  const compressImage = (dataUrl, maxWidth = 500, quality = 0.5) => {
+  // Helper to aggressively compress image (max width 500px, 0.6 quality)
+  const compressImage = (dataUrl, maxWidth = 500, quality = 0.6) => {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
@@ -78,7 +78,7 @@ export default function AiScanner() {
 
     const reader = new FileReader();
     reader.onload = async () => {
-      const compressed = await compressImage(reader.result, 500, 0.5);
+      const compressed = await compressImage(reader.result, 500, 0.6);
       setUploadedImage(compressed);
       setAnalysisResult(null);
     };
@@ -102,8 +102,8 @@ export default function AiScanner() {
 
     const effectiveKey = apiKey.trim() || import.meta.env.VITE_GEMINI_API_KEY || '';
 
-    // Aggressively compress before API call (max width 500px, 0.5 quality)
-    const compressed = await compressImage(uploadedImage, 500, 0.5);
+    // Aggressively compress before API call (max width 500px, 0.6 quality)
+    const compressed = await compressImage(uploadedImage, 500, 0.6);
     const matches = compressed.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
     const mimeType = matches ? matches[1] : 'image/jpeg';
     const base64Data = matches ? matches[2] : compressed.split(',')[1] || compressed;
@@ -142,23 +142,15 @@ export default function AiScanner() {
         throw new Error('API key missing');
       }
 
-      const primaryUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${effectiveKey}`;
-      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${effectiveKey}`;
-
-      let response = await fetch(primaryUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      // Handle 404 if gemini-1.5-flash is sunsetted on this project key
-      if (response.status === 404) {
-        response = await fetch(fallbackUrl, {
+      // Initialized explicitly with gemini-pro-vision model string
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${effectiveKey}`,
+        {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        });
-      }
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);

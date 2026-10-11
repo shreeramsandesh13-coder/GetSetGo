@@ -72,11 +72,8 @@ export default function DeluluChat() {
     const systemPrompt = "You are a travel assistant. Reply in exactly ONE short sentence. NEVER generate lists. Be instant.";
     const userPromptText = `[System: ${systemPrompt}]\n\n${textToSend.trim()}`;
 
-    // Payload strictly using gemini-1.5-flash constraints
+    // Payload strictly using gemini-pro constraints
     const payload = {
-      systemInstruction: {
-        parts: [{ text: systemPrompt }]
-      },
       contents: [
         {
           role: "user",
@@ -93,8 +90,9 @@ export default function DeluluChat() {
         throw new Error('API key not configured. Set VITE_GEMINI_API_KEY in .env');
       }
 
+      // Initialized explicitly with gemini-pro model string
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
